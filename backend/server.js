@@ -16,19 +16,54 @@ app.post("/upload", upload.single("image"), (req, res) => {
 
     console.log("Image received:", imagePath);
 
-    // Call python script
-    const python = spawn("python", ["extract_table.py", imagePath]);
+    // Step 1: Call extract_table.py
+    const pythonExtract = spawn("python", ["extract_table.py", imagePath]);
+    
+    let extractedData = "";
 
-    python.stdout.on("data", data => {
-        console.log(data.toString());
+    pythonExtract.stdout.on("data", data => {
+        const output = data.toString();
+        extractedData += output;
+        console.log("Table extraction output:");
+        console.log(output);
     });
 
-    python.stderr.on("data", data => {
-        console.error("Python error:", data.toString());
+    pythonExtract.stderr.on("data", data => {
+        console.error("Python extraction error:", data.toString());
     });
 
-    python.on("close", () => {
-        res.json({ status: "done" });
+    pythonExtract.on("close", (code) => {
+        if (code !== 0) {
+            console.error("Extract table script failed");
+            return res.status(500).json({ status: "error", message: "Table extraction failed" });
+        }
+
+        console.log("\n--- Starting LLM API Request ---\n");
+
+        // Step 2: Call lmmapireq.py and pipe the extracted data to it
+        const pythonLLM = spawn("python", ["lmmapireq.py"]);
+        
+        // Send the extracted table data to lmmapireq.py via stdin
+        pythonLLM.stdin.write(extractedData);
+        pythonLLM.stdin.end();
+
+        pythonLLM.stdout.on("data", data => {
+            console.log(data.toString());
+        });
+
+        pythonLLM.stderr.on("data", data => {
+            console.error("LLM API error:", data.toString());
+        });
+
+        pythonLLM.on("close", (llmCode) => {
+            if (llmCode !== 0) {
+                console.error("LLM API request failed");
+                return res.status(500).json({ status: "error", message: "LLM processing failed" });
+            }
+            
+            console.log("\n--- Pipeline Complete ---\n");
+            res.json({ status: "done", message: "Table extracted and analyzed by AI" });
+        });
     });
 });
 
