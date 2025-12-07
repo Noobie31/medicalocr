@@ -5,15 +5,20 @@ async function uploadImage() {
     const jsonOutput = document.getElementById("jsonOutput");
 
     if (!file) {
-        statusDiv.innerText = "⚠️ Please select an image first!";
-        statusDiv.className = "status error";
+        alert("⚠️ Please select an image first!");
         return;
     }
 
     // Show loading
     statusDiv.innerText = "🔄 Processing... (OCR → Normalize → Classify → Extract)";
-    statusDiv.className = "status loading";
-    resultsDiv.classList.add("hidden");
+    statusDiv.style.display = "block";
+    statusDiv.style.padding = "15px";
+    statusDiv.style.background = "#fff3cd";
+    statusDiv.style.color = "#856404";
+    statusDiv.style.borderRadius = "6px";
+    statusDiv.style.marginBottom = "20px";
+    
+    if (resultsDiv) resultsDiv.style.display = "none";
 
     const formData = new FormData();
     formData.append("image", file);
@@ -30,15 +35,21 @@ async function uploadImage() {
             statusDiv.innerText = data.status === "ok" 
                 ? "✅ Extraction complete!" 
                 : "⚠️ No amounts found in document";
-            statusDiv.className = "status success";
+            statusDiv.style.background = "#d4edda";
+            statusDiv.style.color = "#155724";
             
-            jsonOutput.textContent = JSON.stringify(data, null, 2);
-            resultsDiv.classList.remove("hidden");
+            if (jsonOutput) {
+                jsonOutput.textContent = JSON.stringify(data, null, 2);
+            }
+            if (resultsDiv) {
+                resultsDiv.style.display = "block";
+            }
         } else {
             throw new Error(data.error || "Processing failed");
         }
     } catch (error) {
         statusDiv.innerText = `❌ Error: ${error.message}`;
-        statusDiv.className = "status error";
+        statusDiv.style.background = "#f8d7da";
+        statusDiv.style.color = "#721c24";
     }
 }

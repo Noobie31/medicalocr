@@ -19,7 +19,7 @@ CORS(app)
 # Linux: usually auto-detected
 
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
-GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent"
+GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
 
 if not GEMINI_API_KEY:
     print("⚠️  WARNING: GEMINI_API_KEY not set. LLM features will fail.")
@@ -55,7 +55,7 @@ def call_gemini(prompt):
             ]
         }
         
-        response = requests.post(GEMINI_API_URL, headers=headers, json=payload, timeout=30)
+        response = requests.post(GEMINI_API_URL, headers=headers, json=payload, timeout=10)
         response.raise_for_status()
         
         result = response.json()
@@ -335,15 +335,17 @@ def assemble_final_output(currency, classifications, ocr_lines):
         value_str = str(item['value'])
         
         for line in ocr_lines:
-            if value_str in line['text'] or str(int(item['value'])) in line['text']:
-                source_line = line['text']
-                break
-        
-        amounts.append({
-            'type': item['type'],
-            'value': item['value'],
-            'source': f"text: '{source_line}'"
-        })
+            # Try matching as-is, as int, or as float
+            try:
+                if (value_str in line['text'] or 
+                    str(int(float(item['value']))) in line['text'] or
+                    str(float(item['value'])) in line['text']):
+                    source_line = line['text']
+                    break
+            except (ValueError, TypeError):
+                if value_str in line['text']:
+                    source_line = line['text']
+                    break
     
     return {
         'currency': currency,
@@ -396,6 +398,7 @@ def process_image():
         print(f"   Normalized {len(normalized)} amounts")
         
         print("🔶 STEP 3: Context Classification Layer")
+        print(f"   Calling Gemini with {len(normalized)} tokens...")
         classifications = classify_amounts_with_context(normalized, ocr_result['lines'])
         print(f"   Classified {len(classifications)} amounts")
         
@@ -426,3 +429,5 @@ if __name__ == '__main__':
     print("   - Ubuntu: sudo apt install tesseract-ocr")
     print("   - Windows: https://github.com/UB-Mannheim/tesseract/wiki")
     app.run(host='0.0.0.0', port=5000, debug=True)
+
+    

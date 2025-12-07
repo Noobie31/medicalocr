@@ -63,35 +63,14 @@ button:hover {
     transform: translateY(-2px);
 }
 
-.status {
-    padding: 15px;
-    border-radius: 6px;
-    margin-bottom: 20px;
-    font-weight: 500;
-}
-
-.status.loading {
-    background: #fff3cd;
-    color: #856404;
-}
-
-.status.success {
-    background: #d4edda;
-    color: #155724;
-}
-
-.status.error {
-    background: #f8d7da;
-    color: #721c24;
+#status {
+    display: none;
 }
 
 .results {
     background: #f8f9fa;
     border-radius: 6px;
     padding: 20px;
-}
-
-.results.hidden {
     display: none;
 }
 
